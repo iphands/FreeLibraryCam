@@ -34,9 +34,9 @@ class HTTPRequestHandler(server.SimpleHTTPRequestHandler):
 
     def do_POST(self):
         filename = '/tmp/{}.jpg'.format(str(int(datetime.now().timestamp())))
-
-        p("- Received req with filename {}".format(filename))
         file_length = int(self.headers['Content-Length'])
+
+        p("- Received req with filename {} ({})".format(filename, file_length))
 
         with open(filename, 'wb') as output_file:
             output_file.write(self.rfile.read(file_length))
