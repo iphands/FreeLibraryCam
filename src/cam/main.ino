@@ -13,7 +13,7 @@ const int LEDC_CHAN = 15;
 const int HTTP_BUFF = 1460;
 const int CHIRP_DELAY = 32;
 
-const String server_name = "192.168.10.101";
+const String server_name = "camupload.lan";
 const char* server_name_c = server_name.c_str();
 const String server_path = "/";
 const int server_port = 8000;
@@ -50,6 +50,16 @@ void beep_sweep() {
   }
 }
 
+void beep_one_two_three_go() {
+  beep(523,  512);
+  delay(128);
+  beep(523,  512);
+  delay(128);
+  beep(523,  512);
+  delay(128);
+  beep(1046, 750);
+}
+
 void beep_success() {
   beep(523, 128);
   delay(16);
@@ -78,6 +88,14 @@ void beep_error() {
 }
 
 void setup() {
+  pinMode(SPEAKER, OUTPUT);
+  pinMode(BUTTON, INPUT);
+
+  ledcSetup(LEDC_CHAN, 2000, 8);
+  ledcAttachPin(SPEAKER, LEDC_CHAN);
+
+  beep_chirp();
+
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
   Serial.begin(115200);
 
@@ -86,10 +104,13 @@ void setup() {
   Serial.print("Connecting to ");
   Serial.println(ssid);
   WiFi.begin(ssid, password);
+
   while (WiFi.status() != WL_CONNECTED) {
+    beep_chirp();
     Serial.print(".");
     delay(500);
   }
+
   Serial.println();
   Serial.print("ESP32-CAM IP Address: ");
   Serial.println(WiFi.localIP());
@@ -127,12 +148,6 @@ void setup() {
     return;
   }
 
-  pinMode(SPEAKER, OUTPUT);
-  pinMode(BUTTON, INPUT);
-
-  ledcSetup(LEDC_CHAN, 2000, 8);
-  ledcAttachPin(SPEAKER, LEDC_CHAN);
-
   beep_success();
 }
 
@@ -156,7 +171,7 @@ void sendPhoto() {
     Serial.println("Connection successful!");
 
     camera_fb_t * fb = NULL;
-
+    beep_one_two_three_go();
     fb = esp_camera_fb_get();
 
     beep_chirp();
