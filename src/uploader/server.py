@@ -66,7 +66,7 @@ class HTTPRequestHandler(server.SimpleHTTPRequestHandler):
         r = requests.post('https://api.imgur.com/3/upload', headers=headers, files=post_data)
         p(r.text)
 
-        if r.status_code == 201:
+        if r.status_code == 201 or r.status_code == 200:
             r = requests.post('https://api.imgur.com/3/album/tycequJ1z0dl4Bx/add', headers=headers, data = {
                 "deletehashes[]": r.json()['data']['deletehash']
             })
