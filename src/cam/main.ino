@@ -5,6 +5,10 @@
 #include "soc/rtc_cntl_reg.h"
 #include "esp_camera.h"
 #include "secrets.h"
+#include "esp32-hal-cpu.h"
+#include "esp_wifi.h"
+
+#define uS_TO_S_FACTOR 1000000ULL
 
 // const int LED = 4;
 const int BUTTON  = 12;
@@ -12,6 +16,7 @@ const int SPEAKER = 2;
 const int LEDC_CHAN = 15;
 const int HTTP_BUFF = 1460;
 const int CHIRP_DELAY = 32;
+const int SLEEP_SECS  = 10;
 
 const String server_name = "camupload.lan";
 const char* server_name_c = server_name.c_str();
@@ -87,6 +92,39 @@ void beep_error() {
   beep(150/2, 256);
 }
 
+void do_wifi(bool output) {
+  delay(250);
+  Serial.println("debug1");
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("debug2");
+    if (output) {
+      Serial.println("debug3");
+      Serial.println();
+      Serial.print("Connecting to ");
+      Serial.println(ssid);
+    }
+
+    Serial.println("debug4");
+    WiFi.begin(ssid, password);
+    Serial.println("debug5");
+
+    while (WiFi.status() != WL_CONNECTED) {
+      Serial.println("debug6");
+      beep_chirp();
+      Serial.print(".");
+      delay(250);
+    }
+
+    Serial.println("debug7");
+    if (output) {
+      Serial.println("debug8");
+      Serial.println();
+      Serial.print("ESP32-CAM IP Address: ");
+      Serial.println(WiFi.localIP());
+    }
+  }
+}
+
 void setup() {
   pinMode(SPEAKER, OUTPUT);
   pinMode(BUTTON, INPUT);
@@ -98,22 +136,6 @@ void setup() {
 
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
   Serial.begin(115200);
-
-  WiFi.mode(WIFI_STA);
-  Serial.println();
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
-  WiFi.begin(ssid, password);
-
-  while (WiFi.status() != WL_CONNECTED) {
-    beep_chirp();
-    Serial.print(".");
-    delay(500);
-  }
-
-  Serial.println();
-  Serial.print("ESP32-CAM IP Address: ");
-  Serial.println(WiFi.localIP());
 
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
@@ -148,28 +170,69 @@ void setup() {
     return;
   }
 
+  WiFi.mode(WIFI_STA);
+  do_wifi(true);
+
+  // Serial.printf("freq: %d\n", getCpuFrequencyMhz());
+  // setCpuFrequencyMhz(80);
+  // Serial.printf("freq: %d\n", getCpuFrequencyMhz());
+
   beep_success();
+  esp_sleep_enable_timer_wakeup(SLEEP_SECS * uS_TO_S_FACTOR);
+  esp_sleep_enable_ext0_wakeup((gpio_num_t)BUTTON, 0);
+}
+
+void sleep() {
+  esp_light_sleep_start();
 }
 
 int state = 0;
+
+bool get_connection() {
+  client.stop();
+  delay(100);
+  Serial.print("Connecting to " + server_name + ": ");
+  for (int i = 0; i < 10; i++) {
+    delay(100);
+
+    if (client.connect(server_name_c, server_port)) {
+      beep_chirp();
+      Serial.println(" success");
+      return true;
+    }
+
+    Serial.print("-");
+    delay(250);
+    do_wifi(false);
+  }
+
+  Serial.println(" failed");
+  return false;
+}
+
+void ping_server() {
+  Serial.println("pinging server: " + server_name);
+  if (get_connection()) {
+    client.println("GET /ping HTTP/1.1");
+    client.println("");
+    Serial.println("ping successful!");
+  }
+}
+
 void loop() {
   state = digitalRead(BUTTON);
-
   if (!state) {
     Serial.println("button pressed");
     sendPhoto();
-    // digitalWrite(LED, HIGH);
+  } else {
+    ping_server();
+    delay(100);
+    sleep();
   }
-
-  delay(100);
 }
 
 void sendPhoto() {
-  Serial.println("Connecting to server: " + server_name);
-  if (client.connect(server_name_c, server_port)) {
-    beep_chirp();
-    Serial.println("Connection successful!");
-
+  if (get_connection()) {
     camera_fb_t * fb = NULL;
     beep_one_two_three_go();
     fb = esp_camera_fb_get();
@@ -227,4 +290,6 @@ void sendPhoto() {
     Serial.println("Connection to " + server_name +  " failed.");
     beep_error();
   }
+
+  sleep();
 }
