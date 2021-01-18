@@ -16,7 +16,7 @@ const int SPEAKER = 2;
 const int LEDC_CHAN = 15;
 const int HTTP_BUFF = 1460;
 const int CHIRP_DELAY = 32;
-const int SLEEP_SECS  = 10;
+const int SLEEP_SECS  = 300;
 
 const String server_name = "camupload.lan";
 const char* server_name_c = server_name.c_str();
@@ -94,31 +94,21 @@ void beep_error() {
 
 void do_wifi(bool output) {
   delay(250);
-  Serial.println("debug1");
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("debug2");
     if (output) {
-      Serial.println("debug3");
-      Serial.println();
       Serial.print("Connecting to ");
       Serial.println(ssid);
     }
 
-    Serial.println("debug4");
     WiFi.begin(ssid, password);
-    Serial.println("debug5");
 
     while (WiFi.status() != WL_CONNECTED) {
-      Serial.println("debug6");
       beep_chirp();
       Serial.print(".");
       delay(250);
     }
 
-    Serial.println("debug7");
     if (output) {
-      Serial.println("debug8");
-      Serial.println();
       Serial.print("ESP32-CAM IP Address: ");
       Serial.println(WiFi.localIP());
     }
