@@ -16,7 +16,7 @@ const int SPEAKER = 2;
 const int LEDC_CHAN = 15;
 const int HTTP_BUFF = 1460;
 const int CHIRP_DELAY = 32;
-const int SLEEP_SECS  = 10;
+const int SLEEP_SECS  = 2;
 
 const String server_name = "camupload.lan";
 const char* server_name_c = server_name.c_str();
@@ -77,13 +77,20 @@ void beep_success() {
 }
 
 void beep_chirp() {
+  delay(100);
+  Serial.println("debug_bc_1");
   beep(1500, CHIRP_DELAY);
+  Serial.println("debug_bc_2");
   delay(CHIRP_DELAY);
 
+  Serial.println("debug_bc_3");
   beep(1000, CHIRP_DELAY);
+  Serial.println("debug_bc_4");
   delay(CHIRP_DELAY);
 
+  Serial.println("debug_bc_5");
   beep(1500, CHIRP_DELAY);
+  Serial.println("debug_bc_6");
 }
 
 void beep_error() {
@@ -111,8 +118,10 @@ void do_wifi(bool output) {
     while (WiFi.status() != WL_CONNECTED) {
       Serial.println("debug6");
       beep_chirp();
+      Serial.println("debug6.1");
       Serial.print(".");
       delay(250);
+      Serial.println("debug6.2");
     }
 
     Serial.println("debug7");

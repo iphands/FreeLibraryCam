@@ -1,0 +1,15 @@
+16:41:24.314 -> ping successful!
+16:41:26.410 -> pinging server: camupload.lan
+16:41:26.509 -> Connecting to camupload.lan: -debug1
+16:41:33.392 -> debug2
+16:41:33.392 -> debug4
+16:41:33.392 -> debug5
+16:41:33.392 -> debug6
+16:41:33.492 -> debug_bc_1
+16:41:33.525 -> debug_bc_2
+16:41:33.591 -> assertion "false && "item should have been present in cache"" failed: file "/home/runner/work/esp32-arduino-lib-builder/esp32-arduino-lib-builder/esp-idf/components/nvs_flash/src/nvs_item_hash_list.cpp", line 97, functidon: void nvs::HashList::erase(size_t, bool)
+16:41:33.591 -> abort() was called at PC 0x4010165b on core 0
+16:41:33.591 -> 
+16:41:33.591 -> Backtrace: 0x400915f0:0x3ffcd7b0 0x40091821:0x3ffcd7d0 0x4010165b:0x3ffcd7f0 0x400e5a3a:0x3ffcd820 0x400e4b97:0x3ffcd840 0x400e51d1:0x3ffcd890 0x400e409d:0x3ffcd8f0 0x400e2ae9:0x3ffcd960 0x400e32b8:0x3ffcd9b0 0x400f28fd:0x3ffcd9d0 0x400f047e:0x3ffcda00 0x400fdfe4:0x3ffcda30 0x400f1f7b:0x3ffcdaa0 0x40137c2f:0x3ffcdac0 0x40135e7b:0x3ffcdae0 0x40136fac:0x3ffcdb00 0x4013f5ae:0x3ffcdb90 0x40094761:0x3ffcdbc0 0x4008dd39:0x3ffcdc00
+16:41:33.625 -> 
+16:41:33.625 -> Rebooting...
