@@ -9,7 +9,7 @@ and see it on the net.
 This is still very much still a work in progress.
 
 I'm working on the solar setup still (I lose power at around 1am :D),
-and working on optimizing the power draw of the ESP32 still. 
+and working on optimizing the power draw of the ESP32 still.
 
 ## It uses:
 - An [ESP32-CAM module](https://www.amazon.com/gp/product/B07S5PVZKV/)
@@ -27,4 +27,3 @@ At the moment the setup uploads to [this Imgur album](https://imgur.com/a/nwV1Ow
   <td><img src="https://raw.githubusercontent.com/iphands/FreeLibraryCam/main/assets/pics/library.jpg" alt="library exterior"></td>
  </tr>
 </table>
-
