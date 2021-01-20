@@ -27,4 +27,9 @@ At the moment the setup uploads to [this Imgur album](https://imgur.com/a/nwV1Ow
   <td><img src="https://raw.githubusercontent.com/iphands/FreeLibraryCam/main/assets/pics/library.jpg" alt="library exterior"></td>
   <td><img src="https://raw.githubusercontent.com/iphands/FreeLibraryCam/main/assets/pics/power_usage.jpg" alt="power usage"></td>
  </tr>
+ <tr>
+  <td colspan="3">
+   <img src="https://raw.githubusercontent.com/iphands/FreeLibraryCam/main/assets/pics/bread_board.jpg" alt="bread board"></td>
+  </td>
+ </tr>
 </table>
