@@ -17,7 +17,7 @@ class HTTPRequestHandler(server.SimpleHTTPRequestHandler):
         global IMGUR_ACCESS_TOKEN
         now = datetime.now() - timedelta(seconds=90)
 
-        if not IMGUR_ACCESS_TOKEN or IMGUR_ACCESS_TOKEN['expires'] < now:
+        if (not IMGUR_ACCESS_TOKEN or ('expires' in IMGUR_ACCESS_TOKEN) and IMGUR_ACCESS_TOKEN['expires'] < now):
             url = "https://api.imgur.com/oauth2/token/"
             data = {
                 "client_id": IMGUR_CLIENT_ID,
@@ -27,6 +27,7 @@ class HTTPRequestHandler(server.SimpleHTTPRequestHandler):
             }
 
             r = requests.post(url, json=data)
+            r.raise_for_status()
             IMGUR_ACCESS_TOKEN = r.json()
             IMGUR_ACCESS_TOKEN['expires'] = datetime.now() + timedelta(seconds=IMGUR_ACCESS_TOKEN['expires_in'])
 
