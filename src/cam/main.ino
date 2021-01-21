@@ -93,7 +93,6 @@ void beep_error() {
 }
 
 void do_wifi(bool output) {
-  delay(250);
   if (WiFi.status() != WL_CONNECTED) {
     if (output) {
       Serial.print("Connecting to ");
@@ -102,14 +101,17 @@ void do_wifi(bool output) {
 
     WiFi.begin(ssid, password);
 
+    int i = 0;
     while (WiFi.status() != WL_CONNECTED) {
       beep_chirp();
       Serial.print(".");
       delay(250);
+      if (i > 25) { ESP.restart(); }
+      i += 1;
     }
 
     if (output) {
-      Serial.print("ESP32-CAM IP Address: ");
+      Serial.print("\nESP32-CAM IP Address: ");
       Serial.println(WiFi.localIP());
     }
   }
