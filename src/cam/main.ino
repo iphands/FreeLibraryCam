@@ -43,6 +43,10 @@ WiFiClient client;
 #define HREF_GPIO_NUM     23
 #define PCLK_GPIO_NUM     22
 
+// GLOBALS
+int state = 0;
+int sleep_count = 0;
+
 void beep(uint freq, uint d) {
   ledcWriteTone(LEDC_CHAN, freq);
   delay(d);
@@ -175,10 +179,21 @@ void setup() {
 }
 
 void sleep() {
+  // I am not really sure if these need to be set again and again
+  // imperically it seems no... but I have issues after about 2hr
+  // where the board becomes unresponsive
+  // esp_sleep_enable_timer_wakeup(SLEEP_SECS * uS_TO_S_FACTOR);
+  // esp_sleep_enable_ext0_wakeup((gpio_num_t)BUTTON, 0);
   esp_light_sleep_start();
-}
 
-int state = 0;
+  if (sleep_count > 100) {
+    // for some reason I consistently lose my board after 2hr
+    // its a hack but just for safety reboot every 1.6 hr or so
+    ESP.restart();
+  }
+
+  sleep_count += 1;
+}
 
 bool get_connection() {
   client.stop();
