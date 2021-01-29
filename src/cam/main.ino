@@ -7,20 +7,21 @@
 #include "secrets.h"
 #include "esp32-hal-cpu.h"
 #include "esp_wifi.h"
+#include "esp_wifi_internal.h"
+#include "nvs_flash.h"
 
 #define uS_TO_S_FACTOR 1000000ULL
 
 // const int LED = 4;
-const int BUTTON  = 12;
-const int SPEAKER = 2;
-const int LEDC_CHAN = 15;
-const int HTTP_BUFF = 1460;
+const int BUTTON      = 12;
+const int SPEAKER     = 2;
+const int LEDC_CHAN   = 15;
+const int HTTP_BUFF   = 1460;
 const int CHIRP_DELAY = 32;
 const int SLEEP_SECS  = 300;
 
 const String server_name = "camupload.lan";
 const char* server_name_c = server_name.c_str();
-const String server_path = "/";
 const int server_port = 8000;
 
 WiFiClient client;
@@ -46,6 +47,38 @@ WiFiClient client;
 // GLOBALS
 int state = 0;
 int sleep_count = 0;
+
+void my_restart() {
+  Serial.printf("\nin my_restart\n");
+
+  pinMode(PWDN_GPIO_NUM, OUTPUT);
+
+  // fugg with the camera to try and reset it
+  for (int i = 0; i < 10; i += 1) {
+    Serial.printf("power cycling cam?\n");
+    digitalWrite(PWDN_GPIO_NUM, HIGH); delay(250);
+    digitalWrite(PWDN_GPIO_NUM, LOW);  delay(250);
+  }
+
+  // Dont call this ESP.restart();
+  // /**
+  // * @brief  Restart PRO and APP CPUs.
+  // *
+  // * This function can be called both from PRO and APP CPUs.
+  // * After successful restart, CPU reset reason will be SW_CPU_RESET.
+  // * Peripherals (except for WiFi, BT, UART0, SPI1, and legacy timers) are not reset.
+  // * This function does not return.
+  // */
+  // void esp_restart(void) __attribute__ ((noreturn));
+  //
+  // Peripherals (except for WiFi, BT, UART0, SPI1, and legacy timers) are not reset.
+  // I need the cam to be reset!
+  // Instead call deep sleep (I hope that powers down the cam for some time)
+
+  Serial.printf("prepping for \"power cycle\"\n");
+  esp_sleep_enable_timer_wakeup(15 * uS_TO_S_FACTOR);
+  esp_deep_sleep_start();
+}
 
 void beep(uint freq, uint d) {
   ledcWriteTone(LEDC_CHAN, freq);
@@ -97,6 +130,10 @@ void beep_error() {
 }
 
 void do_wifi(bool output) {
+  esp_wifi_start();
+  esp_wifi_set_protocol(ESP_IF_WIFI_STA, WIFI_PROTOCOL_11B);
+  esp_wifi_internal_set_fix_rate(ESP_IF_WIFI_STA, true, WIFI_PHY_RATE_1M_L);
+
   if (WiFi.status() != WL_CONNECTED) {
     if (output) {
       Serial.print("Connecting to ");
@@ -104,13 +141,14 @@ void do_wifi(bool output) {
     }
 
     WiFi.begin(ssid, password);
+    delay(500);
 
     int i = 0;
     while (WiFi.status() != WL_CONNECTED) {
       beep_chirp();
       Serial.print(".");
-      delay(250);
-      if (i > 25) { ESP.restart(); }
+      delay(500);
+      if (i > 25) { my_restart(); }
       i += 1;
     }
 
@@ -122,6 +160,31 @@ void do_wifi(bool output) {
 }
 
 void setup() {
+  Serial.begin(9600);
+  Serial.println("");
+
+  // pinMode(SPEAKER, OUTPUT);
+  // pinMode(BUTTON, INPUT);
+  // ledcSetup(LEDC_CHAN, 2000, 8);
+  // ledcAttachPin(SPEAKER, LEDC_CHAN);
+  // while (true) {
+  // Serial.println("beeping\n");
+  // beep_success();
+  // }
+
+  if (esp_reset_reason() == ESP_RST_DEEPSLEEP) {
+    // if we just got back from a deep sleep
+    // go ahead and restart again
+    // desperate attemp to bulletproof hw fail here
+
+    // trying this to combat the:
+    // assertion "end <= ENTRY_COUNT" in nvs::Page::copyItems(nvs::Page&)
+    // issue
+
+    Serial.println("Just reset from a deep sleep... calling restart");
+    ESP.restart();
+  }
+
   pinMode(SPEAKER, OUTPUT);
   pinMode(BUTTON, INPUT);
 
@@ -129,9 +192,7 @@ void setup() {
   ledcAttachPin(SPEAKER, LEDC_CHAN);
 
   beep_chirp();
-
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
-  Serial.begin(115200);
 
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
@@ -152,22 +213,39 @@ void setup() {
   config.pin_sscb_scl = SIOC_GPIO_NUM;
   config.pin_pwdn = PWDN_GPIO_NUM;
   config.pin_reset = RESET_GPIO_NUM;
-  config.xclk_freq_hz = 10000000;
+  // config.xclk_freq_hz = 10000000;
+  config.xclk_freq_hz = 20000000;
   config.pixel_format = PIXFORMAT_JPEG;
 
   config.frame_size = FRAMESIZE_XGA;
-  config.jpeg_quality = 15;
+  config.jpeg_quality = 20;
   config.fb_count = 1;
 
   // camera init
   esp_err_t err = esp_camera_init(&config);
+
   if (err != ESP_OK) {
-    Serial.printf("Camera init failed with error 0x%x", err);
-    return;
+    // fugg with the camera to try and reset it
+    for (int i = 0; i < 10; i += 1) {
+      Serial.printf("power cycling cam?\n");
+      digitalWrite(PWDN_GPIO_NUM, HIGH); delay(250);
+      digitalWrite(PWDN_GPIO_NUM, LOW);  delay(250);
+
+      err = esp_camera_init(&config);
+      if (err == ESP_OK) {
+        break;
+      }
+    }
+
+    if (err != ESP_OK) {
+      Serial.printf("Camera init failed with error 0x%x", err);
+      my_restart();
+    }
   }
 
-  WiFi.mode(WIFI_STA);
+  // WiFi.mode(WIFI_STA);
   do_wifi(true);
+  ping_server(true);
 
   // Serial.printf("freq: %d\n", getCpuFrequencyMhz());
   // setCpuFrequencyMhz(80);
@@ -179,17 +257,21 @@ void setup() {
 }
 
 void sleep() {
+  // esp_bt_controller_disable();
+  // esp_wifi_stop();
+
   // I am not really sure if these need to be set again and again
   // imperically it seems no... but I have issues after about 2hr
   // where the board becomes unresponsive
   // esp_sleep_enable_timer_wakeup(SLEEP_SECS * uS_TO_S_FACTOR);
   // esp_sleep_enable_ext0_wakeup((gpio_num_t)BUTTON, 0);
+
   esp_light_sleep_start();
 
-  if (sleep_count > 100) {
+  if (sleep_count > 10) {
     // for some reason I consistently lose my board after 2hr
-    // its a hack but just for safety reboot every 1.6 hr or so
-    ESP.restart();
+    // its a hack but just for safety reboot every 50 mins or so
+    my_restart();
   }
 
   sleep_count += 1;
@@ -217,10 +299,15 @@ bool get_connection() {
   return false;
 }
 
-void ping_server() {
+void ping_server(bool boot) {
   Serial.println("pinging server: " + server_name);
   if (get_connection()) {
-    client.println("GET /ping HTTP/1.1");
+    if (boot) {
+      client.println("GET /boot HTTP/1.1");
+    } else {
+      client.println("GET /ping HTTP/1.1");
+    }
+
     client.println("");
     Serial.println("ping successful!");
   }
@@ -232,7 +319,7 @@ void loop() {
     Serial.println("button pressed");
     sendPhoto();
   } else {
-    ping_server();
+    ping_server(false);
     delay(100);
     sleep();
   }
@@ -248,7 +335,7 @@ void sendPhoto() {
 
     if (!fb) {
       Serial.println("Camera capture failed");
-      ESP.restart();
+      my_restart();
     }
 
     String tail = "\r\n#DEADBEEF#\r\n";
@@ -258,7 +345,7 @@ void sendPhoto() {
     uint32_t extraLen = tail.length();
     uint32_t totalLen = imageLen + extraLen;
 
-    client.println("POST " + server_path + " HTTP/1.1");
+    client.println("POST / HTTP/1.1");
     client.println("Host: " + server_name);
 
     client.print("Content-Disposition: form-data; name=\"imageFile\"; filename=\"");
